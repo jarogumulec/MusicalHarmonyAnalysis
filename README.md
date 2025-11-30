@@ -4,6 +4,35 @@
 This project performs MIR-based (Music Information Retrieval) analysis of audio tracks (MP3, M4A/ALAC, FLAC, WAV…) without relying on any machine‑learning datasets or Spotify Premium.  
 Focused on DJ‑relevant signal features: rhythmic density, percussive character, tonal center, spectral balance, and transient sharpness.
 
+## 🎯 **Two Analysis Workflows**
+
+### **1. Folder-Based Analysis** (`analyse_music.py`)
+- Scans `music/` folder recursively
+- Analyzes all audio files found
+- Output: `analysis.csv`
+
+### **2. Playlist-Based Analysis** (`analyse_from_playlist.py`)
+- **Interactive CSV selection** from available playlist exports
+- **Track range selection** (e.g., tracks 11-20)
+- Uses file paths from playlist CSV (no `music/` folder needed)
+- Preserves playlist metadata: `#`, `Title`, `Artist`, `Album`
+- Output: `analysis_[playlist]_tracks_[start]-[end].csv`
+- **Ideal for analyzing DJ sets in playlist order**
+
+## 📊 **Visualization Tools**
+
+### **`plot_analysis.py`**
+- Visualizes `analysis.csv` (folder-based analysis)
+- Multi-panel bar charts for all MIR features
+
+### **`plot_from_playlist.py`**
+- **Interactive visualization** for playlist-based analysis
+- **Sorted by playlist order** (track #)
+- **Category headers**: Energy Profile, Rhythmic Intensity, Spectral Balance
+- **Key display**: Color-coded by mode (🟢 Major / 🔴 Minor)
+- **Single-row layout** with track labels shown once
+- Output: `[input_filename]_plot.png`
+
 ---
 
 ## 🎵 **Analyzed Audio Parameters (Explained Technically)**
@@ -30,6 +59,8 @@ Each metric is based on established MIR methods (Essentia, Librosa) and correspo
 
 **Usage:** verifying tempo, detecting problematic files (rips, edits).
 
+**Note:** BPM is computed but **not displayed in playlist visualizations** since DJs typically adjust tempo manually (not informative for mix planning).
+
 ---
 
 ## **3. RMS Energy**  
@@ -37,6 +68,10 @@ Each metric is based on established MIR methods (Essentia, Librosa) and correspo
 
 **Why it matters:** correlates with perceived punch, but does not equal loudness.  
 Useful as a neutral, gain‑independent baseline.
+
+**Visualization:**
+- **RMS Energy** (`rms_mean`) – average energy level
+- **Energy Variation** (`rms_std`) – dynamic range / energy fluctuation
 
 Parameters:
 - `rms_mean`  
@@ -56,32 +91,44 @@ Parameter:
 
 ---
 
-## **5. Onset Density (Rhythmic Density)**  
+## **5. Onset Rate (Rhythmic Density)**  
 **Meaning:** counts how many transient events per second occur.
 
 This reliably captures:
 - **1/8 hats** (high onset density → energetic feel)  
 - **1/4 hats** (lower density → drop in groove)
 
+**Most important indicator of groove intensity** – directly corresponds to perceived rhythmic activity.
+
+**Visualization:** Displayed under **"Rhythmic Intensity"** category alongside Attack Sharpness.
+
 Parameter:
-- `onset_rate`
+- `onset_rate` (events per second)
 
 ---
 
-## **6. Spectral Centroid (“Brightness”)**  
-**Meaning:** where the “center of mass” of spectral energy lies.  
-Bright = sizzle, fizz, highs.  
-Dark = warm, muted, deep.
+## **6. Spectral Centroid (Brightness)**  
+**Meaning:** where the "center of mass" of spectral energy lies.  
+- High values → crisp, hi-hat heavy, sizzle
+- Low values → warm, dark, deep
+
+**Visualization:**
+- **Brightness** (`centroid_mean`) – average timbral brightness
+- Not displayed: `centroid_std` (timbral variation over time)
 
 Parameters:
-- `centroid_mean`  
-- `centroid_std`
+- `centroid_mean` (Hz)  
+- `centroid_std` (Hz)
 
 ---
 
-## **7. Spectral Flux (“Transient Activity”)**  
-How much the spectrum changes frame‑to‑frame.  
-Tracks with strong percussion have high flux.
+## **7. Spectral Flux (Spectral Dynamics)**  
+**Meaning:** how much the spectrum changes frame‑to‑frame.  
+Tracks with strong percussion and rhythmic movement have high flux.
+
+**Correlates with:** rhythmic heartbeat, spectral activity, dynamic changes
+
+**Visualization:** Displayed as **"Spectral Flux"**
 
 Parameters:
 - `flux_mean`
@@ -89,11 +136,13 @@ Parameters:
 
 ---
 
-## **8. High-Frequency Ratio (>= 6 kHz)**  
+## **8. High-Frequency Ratio (≥ 6 kHz)**  
 A proxy for the **hi-hat / shimmer layer**.
 
 - High → crisp top end, energetic hats  
 - Low → muffled, soft, pad‑driven
+
+**Visualization:** Displayed under **"Spectral Balance"** category as **"HF Ratio (≥6kHz)"**
 
 Parameter:
 - `hf_ratio`
@@ -103,8 +152,12 @@ Parameter:
 ## **9. Bass Ratio (< 200 Hz)**  
 Measures low‑end dominance.
 
+- High → sub-heavy, bass-driven tracks
+- Low → mid/high-focused, lighter bass presence
 - Useful to identify tracks with strong sub/bass  
 - Helps characterize balance (sub‑heavy vs mid‑heavy tracks)
+
+**Visualization:** Displayed under **"Spectral Balance"** category as **"Bass Ratio (<200Hz)"**
 
 Parameter:
 - `bass_ratio`
@@ -113,10 +166,14 @@ Parameter:
 
 ## **10. Attack Sharpness**  
 Derived from the slope of the onset envelope.  
-Captures how “hard” the transient attacks are.
+Captures how "hard" the transient attacks are.
 
-- High → electro/techno punchy kicks  
-- Low → deep house smooth edges
+- High → electro/techno punchy kicks, sharp transients
+- Low → deep house smooth edges, soft attacks
+
+**One of the best indicators of track character** – distinguishes aggressive vs smooth production styles.
+
+**Visualization:** Displayed under **"Rhythmic Intensity"** category alongside Onset Rate.
 
 Parameter:
 - `attack_sharpness`
@@ -124,13 +181,20 @@ Parameter:
 ---
 
 # 📈 Output Format  
-All results are saved to:
 
+## **Folder-Based Analysis**
 ```
 analysis.csv
 ```
+Each row = one track, columns = features (filename, key, mode, bpm, all MIR metrics)
 
-Each row = one track, columns = above features.
+## **Playlist-Based Analysis**
+```
+analysis_[playlist_name]_tracks_[start]-[end].csv
+```
+Each row = one track with:
+- Playlist metadata: `#`, `Title`, `Artist`, `Album`
+- All MIR features (key, mode, bpm, rms_mean, etc.)
 
 ---
 
@@ -138,11 +202,16 @@ Each row = one track, columns = above features.
 
 ```
 MusicalHarmonyAnalysis/
- ├── music/           # put audio files here
- ├── analyse_music.py
- ├── analysis.csv     # output
- ├── .venv/           # uv environment
- └── run.sh           # bootstrap / execution
+ ├── music/                    # audio files for folder-based analysis
+ ├── analyse_music.py          # folder-based analyzer
+ ├── analyse_from_playlist.py  # playlist-based analyzer (interactive)
+ ├── plot_analysis.py          # visualize folder analysis
+ ├── plot_from_playlist.py     # visualize playlist analysis (interactive)
+ ├── analysis.csv              # folder analysis output
+ ├── analysis_*.csv            # playlist analysis outputs
+ ├── *_plot.png                # visualization outputs
+ ├── .venv/                    # uv virtual environment
+ └── run.sh                    # bootstrap / execution
 ```
 
 ---
