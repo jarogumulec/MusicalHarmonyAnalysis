@@ -86,6 +86,10 @@ Measures how much of the signal consists of *transients / drum hits* vs *pads / 
 - High → techno, electro, energetic bangers  
 - Low → deep house, ambient, groove‑light tracks
 
+**One of the best simple predictors of "energy feel"** – distinguishes percussion-driven vs pad-driven tracks.
+
+**Visualization:** Displayed under **"Energy Profile"** category alongside RMS Energy.
+
 Parameter:
 - `percussive_ratio`
 
@@ -216,6 +220,37 @@ MusicalHarmonyAnalysis/
 
 ---
 
+# 🎨 Visualization Features
+
+## **Category-Based Grouping**
+Plots organize metrics into logical categories:
+
+### **Energy Profile** (Orange Header)
+- RMS Energy
+- Percussive Ratio
+
+### **Rhythmic Intensity** (Green Header)
+- Onset Rate
+- Attack Sharpness
+
+### **Spectral Balance** (Blue Header)
+- HF Ratio (≥6kHz)
+- Bass Ratio (<200Hz)
+
+### **Additional Metrics**
+- Brightness (Spectral Centroid)
+- Spectral Flux
+- Energy Variation (RMS Std Dev)
+
+## **Key Display**
+- Musical keys shown as text labels (C, F#, Bb, etc.)
+- Color-coded by mode:
+  - 🟢 **Green** = Major
+  - 🔴 **Red** = Minor
+- Solves the circular key problem (keys don't map linearly)
+
+---
+
 # 🗂️ TODO / Optional Extensions
 
 ### **1. Camelot Key Mapping**  
@@ -234,10 +269,11 @@ Quantify how two tracks blend based on:
 - rhythmic density match  
 - spectral balance similarity
 
-### **4. Heatmaps & Visualization Tools**  
-- brightness vs. bass ratio  
-- groove density maps  
-- clustering based on audio features
+### **4. Advanced Visualization**  
+- 2D scatter plots (brightness vs. bass ratio)
+- Energy flow timeline across playlist
+- Clustering analysis based on audio features
+- Heatmaps showing feature correlations
 
 ### **5. Spotify Audio Feature Fallback**  
 If a track exists on Spotify:
@@ -256,14 +292,54 @@ If a track exists on Spotify:
 
 ---
 
+# 🚀 Quick Start
+
+## **Folder-Based Workflow**
+```bash
+# 1. Put audio files in music/ folder
+# 2. Run analysis
+python analyse_music.py
+
+# 3. Visualize results
+python plot_analysis.py
+```
+
+## **Playlist-Based Workflow**
+```bash
+# 1. Export playlist CSV with file paths
+# 2. Run analysis (interactive)
+python analyse_from_playlist.py
+# → Select CSV file
+# → Enter track range (e.g., 11-20)
+
+# 3. Visualize results (interactive)
+python plot_from_playlist.py
+# → Select analysis CSV to visualize
+```
+
+---
+
 # ✔ Summary
 
 This project extracts **real, deterministic, DSP-based audio descriptors** that directly correlate with DJ‑perceived musical properties:
-- tonal center  
-- rhythmic density  
-- transient sharpness  
-- spectral balance  
-- percussive dominance
+- **Tonal center** (key/mode) with color-coded visualization
+- **Rhythmic density** (onset rate) and **transient sharpness** (attack profile)
+- **Energy profile** (RMS + percussive ratio)
+- **Spectral balance** (HF vs bass content)
+- **Timbral characteristics** (brightness, spectral flux)
 
-These form a robust baseline for further energy models, compatibility scoring, and integration with Spotify data if desired.
+## **Key Advantages**
+✅ **No Spotify Premium required**  
+✅ **Works offline** – pure local DSP  
+✅ **Deterministic** – no ML black boxes  
+✅ **DJ-focused** – features that matter for mixing  
+✅ **Playlist-aware** – analyze sets in sequence  
+✅ **Visual feedback** – instant overview of track characteristics
+
+These form a robust baseline for:
+- Energy flow analysis across DJ sets
+- Transition compatibility scoring
+- Harmonic mixing planning
+- Track selection and sequencing
+- Integration with Spotify data if desired
 
