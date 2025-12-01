@@ -72,6 +72,9 @@ Useful as a neutral, gain‑independent baseline.
 
 **Visualization:**
 - **RMS Energy** (`rms_mean`) – average energy level
+- High → hi nrg songs (Anna and Kittin - Forever Ravers)
+- Low → generally lo enrgy, but also 90s dance (Westbam - Beatbox Rocker) 
+
 - **Energy Variation** (`rms_std`) – dynamic range / energy fluctuation
 
 Parameters:
@@ -82,12 +85,12 @@ Parameters:
 
 ## **4. Percussive Ratio (HPSS)**  
 **Method:** Harmonic–Percussive Source Separation  
-Measures how much of the signal consists of *transients / drum hits* vs *pads / harmonic content*.
+Measures how much of the signal consists of *transients / drum hits* vs *pads / harmonic content*. Distinguishes percussion-driven vs pad-driven tracks.
 
-- High → techno, electro, energetic bangers  
-- Low → deep house, ambient, groove‑light tracks
 
-**One of the best simple predictors of "energy feel"** – distinguishes percussion-driven vs pad-driven tracks.
+- High → techno, electro, but also drum-only tracks (Peace Orchestra - Shining)  
+- Low → deep house, ambient, groove‑light tracks (Miss Kittin - Cosmid Address)
+
 
 **Visualization:** Displayed under **"Energy Profile"** category alongside RMS Energy.
 
@@ -97,13 +100,13 @@ Parameter:
 ---
 
 ## **5. Onset Rate (Rhythmic Density)**  
-**Meaning:** counts how many transient events per second occur.
+**Meaning:** counts how many transient events per second occur. High also in music composed of square signals.
 
 This reliably captures:
-- **1/8 hats** (high onset density → energetic feel)  
-- **1/4 hats** (lower density → drop in groove)
+- **1/8 hats** (high onset density → energetic feel), e.g. Charlotte de Witte - Power of Thought  
+- **1/4 hats** (lower density → drop in groove), e.g. Soul clap - Wicked (gentler sound)
 
-**Most important indicator of groove intensity** – directly corresponds to perceived rhythmic activity.
+**indicator of groove intensity** – directly corresponds to perceived rhythmic activity.
 
 **Visualization:** Displayed under **"Rhythmic Intensity"** category alongside Attack Sharpness.
 
@@ -118,7 +121,11 @@ Parameter:
 - Low values → warm, dark, deep
 
 **Visualization:**
-- **Brightness** (`centroid_mean`) – average timbral brightness
+- **Brightness** (`centroid_mean`) – average timbral brightness. "Clarity"
+
+- High: more clear sound - Miss Kittin - 1993 EACID 
+- Low: deeper darker tracks -  Miss Kittin - Cosmic adress
+
 - Not displayed: `centroid_std` (timbral variation over time)
 
 Parameters:
@@ -129,7 +136,7 @@ Parameters:
 
 ## **7. Spectral Flux (Spectral Dynamics)**  
 **Meaning:** how much the spectrum changes frame‑to‑frame.  
-Tracks with strong percussion and rhythmic movement have high flux.
+Tracks with strong percussion and rhythmic movement have high flux. Hard to hear for me.  
 
 **Correlates with:** rhythmic heartbeat, spectral activity, dynamic changes
 
@@ -142,10 +149,10 @@ Parameters:
 ---
 
 ## **8. High-Frequency Ratio (≥ 6 kHz)**  
-A proxy for the **hi-hat / shimmer layer**.
+A proxy for the **hi-hat / shimmer layer**. How much heighs. subjecitvelly similar to brighntess.
 
-- High → crisp top end, energetic hats  
-- Low → muffled, soft, pad‑driven
+- High → crisp top end, energetic hats, eg Miss Kittin 1993 EACID.   
+- Low → muffled, soft, pad‑driven, eg Miss Kittin Cosmic Address
 
 **Visualization:** Displayed under **"Spectral Balance"** category as **"HF Ratio (≥6kHz)"**
 
@@ -157,10 +164,11 @@ Parameter:
 ## **9. Bass Ratio (< 200 Hz)**  
 Measures low‑end dominance.
 
-- High → sub-heavy, bass-driven tracks
-- Low → mid/high-focused, lighter bass presence
+- High → sub-heavy, bass-driven tracks. e.g. Miss Kittin - Cosmic adress
+- Low → mid/high-focused, lighter bass presence. e.g. Storm - Time to Burn (and many older pre-loudness war electornic dance tracks) 
 - Useful to identify tracks with strong sub/bass  
 - Helps characterize balance (sub‑heavy vs mid‑heavy tracks)
+- when mid-heavy track follow a sub-heavy one, energy breaks on a dancefloor.
 
 **Visualization:** Displayed under **"Spectral Balance"** category as **"Bass Ratio (<200Hz)"**
 
@@ -171,10 +179,10 @@ Parameter:
 
 ## **10. Attack Sharpness**  
 Derived from the slope of the onset envelope.  
-Captures how "hard" the transient attacks are.
+Captures how "hard" the transient attacks are. 
 
-- High → electro/techno punchy kicks, sharp transients
-- Low → deep house smooth edges, soft attacks
+- High → electro/techno punchy kicks, sharp transients, "ždímačka", ek Felix Cartal Stranger Things remix
+- Low → deep house smooth edges, soft, mellow attacks, e.g. Westbam - Oldschool baby
 
 **One of the best indicators of track character** – distinguishes aggressive vs smooth production styles.
 

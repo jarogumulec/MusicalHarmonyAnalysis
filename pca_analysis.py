@@ -68,14 +68,42 @@ if not csv_files:
 
 print(f"\n✓ Found {len(csv_files)} analysis file(s)")
 
-# Load and merge all CSVs
-dfs = []
-for csv_file in csv_files:
-    df_temp = pd.read_csv(csv_file)
-    df_temp['source_file'] = csv_file.stem
-    dfs.append(df_temp)
-
-df_all = pd.concat(dfs, ignore_index=True)
+# If multiple CSVs, let user choose
+if len(csv_files) > 1:
+    print("\nAvailable analysis files:")
+    for idx, csv_file in enumerate(csv_files, 1):
+        print(f"  {idx}. {csv_file.name}")
+    print(f"  {len(csv_files) + 1}. Merge all files")
+    
+    while True:
+        try:
+            choice = int(input(f"\nSelect file for PCA (1-{len(csv_files) + 1}): "))
+            if 1 <= choice <= len(csv_files) + 1:
+                break
+            print(f"Please enter a number between 1 and {len(csv_files) + 1}")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+    
+    if choice <= len(csv_files):
+        # Single file selected
+        selected_csv = csv_files[choice - 1]
+        print(f"\n✓ Selected: {selected_csv.name}")
+        df_all = pd.read_csv(selected_csv)
+        df_all['source_file'] = selected_csv.stem
+    else:
+        # Merge all files
+        print(f"\n✓ Merging all {len(csv_files)} files...")
+        dfs = []
+        for csv_file in csv_files:
+            df_temp = pd.read_csv(csv_file)
+            df_temp['source_file'] = csv_file.stem
+            dfs.append(df_temp)
+        df_all = pd.concat(dfs, ignore_index=True)
+else:
+    # Only one CSV file
+    print(f"\n✓ Using: {csv_files[0].name}")
+    df_all = pd.read_csv(csv_files[0])
+    df_all['source_file'] = csv_files[0].stem
 
 # Create display labels
 if 'Title' in df_all.columns and 'Artist' in df_all.columns:
