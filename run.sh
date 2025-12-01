@@ -19,8 +19,8 @@ REQUIRED_PACKAGES=(
     "ffmpeg-python"
     "spotipy"
     "scipy"
-
-
+    "scikit-learn"
+    "plotly"
 )
 
 # --- create venv if missing ---
