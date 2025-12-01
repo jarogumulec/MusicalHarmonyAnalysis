@@ -23,26 +23,26 @@ from plotly.subplots import make_subplots
 # Features to use for PCA (excluding metadata)
 FEATURE_COLUMNS = [
     'rms_mean',
-    'rms_std',
+ #   'rms_std',
     'centroid_mean',
-    'centroid_std',
+ #   'centroid_std',
     'flux_mean',
-    'flux_std',
+ #   'flux_std',
     'percussive_ratio',
     'onset_rate',
     'hf_ratio',
     'bass_ratio',
-    'attack_sharpness'
+ #  'attack_sharpness'
 ]
 
 # Feature display names for plots
 FEATURE_NAMES = {
     'rms_mean': 'RMS Energy',
-    'rms_std': 'Energy Variation',
+ #   'rms_std': 'Energy Variation',
     'centroid_mean': 'Brightness',
-    'centroid_std': 'Timbral Variation',
+ #    'centroid_std': 'Timbral Variation',
     'flux_mean': 'Spectral Flux',
-    'flux_std': 'Flux Variation',
+ #   'flux_std': 'Flux Variation',
     'percussive_ratio': 'Percussive Ratio',
     'onset_rate': 'Onset Rate',
     'hf_ratio': 'HF Ratio',
