@@ -32,7 +32,7 @@ FEATURE_COLUMNS = [
     'onset_rate',
     'hf_ratio',
     'bass_ratio',
- #  'attack_sharpness'
+   'attack_sharpness'
 ]
 
 # Feature display names for plots

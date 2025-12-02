@@ -21,6 +21,7 @@ REQUIRED_PACKAGES=(
     "scipy"
     "scikit-learn"
     "plotly"
+    "umap-learn"
 )
 
 # --- create venv if missing ---
