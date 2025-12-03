@@ -135,6 +135,36 @@ else:
     df_all = pd.read_csv(csv_files[0])
     df_all['source_file'] = csv_files[0].stem
 
+# Try to find and merge with original Engine DJ CSV for file paths
+# Look for corresponding original CSV (without 'analysis_' prefix and '_tracks_...' suffix)
+source_csv_pattern = df_all['source_file'].iloc[0] if 'source_file' in df_all.columns else csv_files[0].stem
+# Extract original filename (e.g., 'analysis_A_IMPORT_tracks_1-979' -> 'A_IMPORT')
+if source_csv_pattern.startswith('analysis_'):
+    original_name = source_csv_pattern.replace('analysis_', '').split('_tracks_')[0]
+    original_csv_path = Path(original_name + '.csv')
+    
+    if original_csv_path.exists():
+        print(f"Loading file paths from: {original_csv_path.name}")
+        df_original = pd.read_csv(original_csv_path)
+        
+        # Merge on Title, Artist, Album to get file paths
+        if 'File name' in df_original.columns:
+            merge_cols = []
+            if 'Title' in df_all.columns and 'Title' in df_original.columns:
+                merge_cols.append('Title')
+            if 'Artist' in df_all.columns and 'Artist' in df_original.columns:
+                merge_cols.append('Artist')
+            if 'Album' in df_all.columns and 'Album' in df_original.columns:
+                merge_cols.append('Album')
+            
+            if merge_cols:
+                df_all = df_all.merge(
+                    df_original[merge_cols + ['File name']],
+                    on=merge_cols,
+                    how='left'
+                )
+                print(f"Merged file paths for {df_all['File name'].notna().sum()} tracks")
+
 # Create display labels
 if 'Title' in df_all.columns and 'Artist' in df_all.columns:
     df_all['label'] = df_all.apply(
@@ -373,7 +403,10 @@ def value_to_color(value):
 table_html = '<div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">'
 table_html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">'
 table_html += '<h3 style="margin: 0; color: #333;">Track Parameters - Sortable & Filterable</h3>'
-table_html += '<button onclick="exportToEnginePlaylist()" style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;">📥 Export Filtered to Engine DJ CSV</button>'
+table_html += '<div>'
+table_html += '<button onclick="exportToM3U()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; margin-right: 10px;">📥 Export to M3U Playlist</button>'
+table_html += '<button onclick="exportToEngineCSV()" style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;">📥 Export to CSV</button>'
+table_html += '</div>'
 table_html += '</div>'
 table_html += '<div style="margin-bottom: 10px; color: #555; font-size: 13px;"><span id="visibleCount">{len(df_all)}</span> / {len(df_all)} tracks visible</div>'
 table_html += '<input type="text" id="searchBox" placeholder="Filter tracks by name, key, BPM..." style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">'
@@ -403,7 +436,8 @@ for idx, (_, row) in enumerate(df_all.iterrows()):
     artist = row.get('Artist', '')
     title = row.get('Title', '')
     album = row.get('Album', '')
-    table_html += f'<tr class="data-row" style="border-bottom: 1px solid #eee; background: {row_bg};" data-artist="{artist}" data-title="{title}" data-album="{album}" data-key="{row["key"]}" data-mode="{row["mode"]}" data-bpm="{row["bpm"]:.1f}">'
+    filepath = row.get('File name', '')  # Use 'File name' from Engine DJ CSV
+    table_html += f'<tr class="data-row" style="border-bottom: 1px solid #eee; background: {row_bg};" data-artist="{artist}" data-title="{title}" data-album="{album}" data-filepath="{filepath}" data-key="{row["key"]}" data-mode="{row["mode"]}" data-bpm="{row["bpm"]:.1f}">'
     table_html += f'<td style="padding: 10px; border: 1px solid #ddd;">{idx+1}</td>'
     table_html += f'<td style="padding: 10px; border: 1px solid #ddd; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{row["label"]}">{row["label"]}</td>'
     
@@ -570,7 +604,48 @@ function updateVisibleCount() {
   document.getElementById("visibleCount").textContent = visibleCount;
 }
 
-function exportToEnginePlaylist() {
+function exportToM3U() {
+  var table = document.getElementById("trackTable");
+  var tbody = table.tBodies[0];
+  var rows = tbody.getElementsByTagName("tr");
+  
+  // Build M3U playlist with extended info
+  var m3u = "#EXTM3U\\n";
+  var trackCount = 0;
+  
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    if (row.style.display !== "none") {
+      var artist = row.getAttribute("data-artist");
+      var title = row.getAttribute("data-title");
+      var filepath = row.getAttribute("data-filepath");
+      
+      // Add extended info: #EXTINF:duration,artist - title
+      // Duration is unknown, use -1
+      m3u += "#EXTINF:-1," + artist + " - " + title + "\\n";
+      m3u += filepath + "\\n";
+      trackCount++;
+    }
+  }
+  
+  // Create download
+  var blob = new Blob([m3u], { type: "audio/x-mpegurl;charset=utf-8;" });
+  var link = document.createElement("a");
+  var url = URL.createObjectURL(blob);
+  
+  var timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "filtered_playlist_" + timestamp + ".m3u");
+  link.style.visibility = "hidden";
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  alert("Exported " + trackCount + " filtered tracks to M3U playlist!\\n\\nTo import:\\n• iTunes/Music: File → Library → Import Playlist\\n• Engine DJ: Will read from iTunes library automatically");
+}
+
+function exportToEngineCSV() {
   var table = document.getElementById("trackTable");
   var tbody = table.tBodies[0];
   var rows = tbody.getElementsByTagName("tr");
@@ -621,7 +696,7 @@ function exportToEnginePlaylist() {
   link.click();
   document.body.removeChild(link);
   
-  alert("Exported " + (trackNum - 1) + " filtered tracks to Engine DJ CSV format!\\nImport this CSV into Engine DJ as a new playlist.");
+  alert("Exported " + (trackNum - 1) + " filtered tracks to CSV format!");
 }
 </script>
 '''
@@ -678,8 +753,9 @@ full_html = f'''
         <strong>Usage:</strong><br>
         • Hover over points for track info | Click column headers to sort<br>
         • Search box for text filter | Column filters accept range (e.g., "120-130" or "0.5-0.8")<br>
-        • <strong>Export filtered results:</strong> Apply filters, then click "Export Filtered to Engine DJ CSV" button<br>
-        • Import the downloaded CSV into Engine DJ as a new playlist
+        • <strong>Export filtered results:</strong><br>
+        &nbsp;&nbsp;- <strong>M3U Playlist (recommended):</strong> Import directly to iTunes/Music.app (File → Library → Import Playlist). Engine DJ will see it in your iTunes library.<br>
+        &nbsp;&nbsp;- <strong>CSV:</strong> Alternative format with track metadata
     </div>
 </body>
 </html>
