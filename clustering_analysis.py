@@ -325,10 +325,10 @@ if len(df_minor) > 0:
         )
     )
 
-# Update layout
+# Update layout with dragmode for selection
 fig.update_layout(
     title=dict(
-        text=f't-SNE Clustering - {len(df_all)} tracks - Color: Camelot Wheel | Shape: Circle=Major, Square=Minor',
+        text=f't-SNE Clustering - {len(df_all)} tracks - Color: Camelot Wheel | Shape: Circle=Major, Square=Minor | Drag to select',
         x=0.5,
         xanchor='center',
         font=dict(size=14, color='#333')
@@ -353,6 +353,8 @@ fig.update_layout(
     plot_bgcolor='white',
     paper_bgcolor='white',
     font=dict(family='Arial', size=11),
+    dragmode='select',
+    selectdirection='any',
     legend=dict(
         x=1.02,
         y=1,
@@ -746,7 +748,54 @@ full_html = f'''
         Shapes: ●=Major ■=Minor | 
         Heatmap: 🔵 Low → ⚪ Mid → 🔴 High
     </div>
-    {plot_html}
+    <div id="plotContainer">
+        {plot_html}
+    </div>
+    <script>
+        // Listen for plotly selection events
+        var plotDiv = document.querySelector('.plotly-graph-div');
+        
+        plotDiv.on('plotly_selected', function(eventData) {{
+            if (!eventData || !eventData.points || eventData.points.length === 0) {{
+                highlightTableRows([]);
+                return;
+            }}
+            
+            var selectedTracks = eventData.points.map(function(pt) {{
+                return pt.hovertext.match(/<b>(.*?)<\\/b>/)[1];
+            }});
+            
+            highlightTableRows(selectedTracks);
+        }});
+        
+        plotDiv.on('plotly_deselect', function() {{
+            highlightTableRows([]);
+        }});
+        
+        function highlightTableRows(selectedTracks) {{
+            var table = document.getElementById("trackTable");
+            var tbody = table.tBodies[0];
+            var rows = tbody.getElementsByTagName("tr");
+            
+            for (var i = 0; i < rows.length; i++) {{
+                var row = rows[i];
+                var trackLabel = row.cells[1].textContent.trim();
+                
+                if (selectedTracks.length === 0) {{
+                    row.style.opacity = "1";
+                    row.style.backgroundColor = i % 2 === 0 ? "#f9f9f9" : "white";
+                }} else if (selectedTracks.includes(trackLabel)) {{
+                    row.style.opacity = "1";
+                    row.style.backgroundColor = "#ffffcc";
+                }} else {{
+                    row.style.opacity = "0.3";
+                }}
+            }}
+            
+            document.getElementById("visibleCount").textContent = 
+                selectedTracks.length > 0 ? selectedTracks.length : rows.length;
+        }}
+    </script>
     {table_html}
     {table_js}
     <div style="margin-top: 30px; padding: 15px; background: #ecf0f1; border-radius: 5px; color: #555;">
