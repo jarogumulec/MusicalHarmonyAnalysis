@@ -213,19 +213,67 @@ Each row = one track with:
 
 # 📂 Directory Structure
 
+This project uses an organized folder structure to separate input playlists, analysis results, and visualization outputs.
+
 ```
 MusicalHarmonyAnalysis/
- ├── music/                    # audio files for folder-based analysis
- ├── analyse_music.py          # folder-based analyzer
- ├── analyse_from_playlist.py  # playlist-based analyzer (interactive)
- ├── plot_analysis.py          # visualize folder analysis
- ├── plot_from_playlist.py     # visualize playlist analysis (interactive)
- ├── analysis.csv              # folder analysis output
- ├── analysis_*.csv            # playlist analysis outputs
- ├── *_plot.png                # visualization outputs
- ├── .venv/                    # uv virtual environment
- └── run.sh                    # bootstrap / execution
+├── playlists_to_analyse/     # Input: Engine DJ playlists (CSV format)
+├── analysed_playlists/        # Output: MIR feature analysis results (CSV)
+├── analysis_output/           # Output: Visualizations (HTML, PNG)
+├── music/                     # Audio files for analysis
+├── .venv/                     # uv virtual environment
+└── *.py                       # Analysis scripts
 ```
+
+## Folder Descriptions
+
+### 📂 `playlists_to_analyse/`
+**Purpose:** Store Engine DJ playlist CSV files to be analyzed
+
+**Used by:**
+- `analyse_from_playlist.py` - Reads playlists from here
+
+**Content:** Engine DJ exported playlists (CSV format with Title, Artist, Album, File name columns)
+
+---
+
+### 📂 `analysed_playlists/`
+**Purpose:** Store MIR (Music Information Retrieval) feature analysis results
+
+**Written by:**
+- `analyse_music.py` → `analysis.csv`
+- `analyse_from_playlist.py` → `analysis_<playlist>_tracks_<range>.csv`
+
+**Read by:**
+- `clustering_analysis.py` - Reads all `analysis*.csv` files
+- `plot_from_playlist.py` - Reads `analysis_*.csv` files
+- `plot_analysis.py` - Reads `analysis.csv`
+
+**Content:** CSV files with MIR features (RMS, spectral centroid, flux, etc.) for each track
+
+---
+
+### 📂 `analysis_output/`
+**Purpose:** Store visualization outputs (HTML, PNG)
+
+**Written by:**
+- `clustering_analysis.py` → `clustering_analysis.html`
+- `plot_from_playlist.py` → `analysis_<playlist>_tracks_<range>_plot.png`
+- `plot_analysis.py` → `analysis_plots.png`
+
+**Content:** 
+- Interactive HTML visualizations (t-SNE clustering with Camelot wheel)
+- Static PNG plots (feature distributions)
+
+---
+
+## Benefits of This Structure
+
+✅ **Clean separation** - Input, intermediate, and output files in separate folders  
+✅ **Easy cleanup** - Delete `analysis_output/` to remove all visualizations  
+✅ **Re-analysis** - Keep analysis CSVs, regenerate visualizations anytime  
+✅ **Version control** - Clear what to commit vs ignore  
+✅ **Scalability** - Add more playlists/analyses without clutter
 
 ---
 
@@ -308,22 +356,45 @@ If a track exists on Spotify:
 # 1. Put audio files in music/ folder
 # 2. Run analysis
 python analyse_music.py
+# → Reads from: music/
+# → Writes to: analysed_playlists/analysis.csv
 
 # 3. Visualize results
 python plot_analysis.py
+# → Reads from: analysed_playlists/analysis.csv
+# → Writes to: analysis_output/analysis_plots.png
 ```
 
 ## **Playlist-Based Workflow**
 ```bash
-# 1. Export playlist CSV with file paths
+# 1. Export playlist CSV from Engine DJ to playlists_to_analyse/
 # 2. Run analysis (interactive)
 python analyse_from_playlist.py
+# → Reads from: playlists_to_analyse/*.csv
+# → Writes to: analysed_playlists/analysis_<name>_tracks_<range>.csv
 # → Select CSV file
 # → Enter track range (e.g., 11-20)
 
 # 3. Visualize results (interactive)
 python plot_from_playlist.py
+# → Reads from: analysed_playlists/analysis_*.csv
+# → Writes to: analysis_output/analysis_*_plot.png
 # → Select analysis CSV to visualize
+```
+
+## **Interactive Clustering & Export**
+```bash
+# Create interactive t-SNE clustering visualization with Camelot wheel
+python clustering_analysis.py
+# → Reads from: analysed_playlists/analysis*.csv
+#              playlists_to_analyse/*.csv (for file paths)
+# → Writes to: analysis_output/clustering_analysis.html
+
+# Features:
+# • Drag to select tracks on t-SNE plot
+# • Filter tracks using search box or range filters (e.g., BPM: "120-130")
+# • Bidirectional filtering: plot ↔ table
+# • Export filtered selection as M3U playlist for iTunes/Engine DJ
 ```
 
 ---

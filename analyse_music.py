@@ -12,7 +12,7 @@ import librosa
 # -------------------------------------------------------------------
 
 MUSIC_DIR = Path("music")
-OUTPUT_CSV = Path("analysis.csv")
+OUTPUT_CSV = Path("analysed_playlists/analysis.csv")
 
 AUDIO_EXT = {
     ".mp3", ".m4a", ".aac", ".wav", ".flac", ".ogg", ".aiff", ".alac"

@@ -92,7 +92,7 @@ print("CLUSTERING ANALYSIS - t-SNE with Camelot Wheel")
 print("=" * 70)
 
 # Find all analysis CSV files
-csv_files = list(Path(".").glob("analysis*.csv"))
+csv_files = list(Path("analysed_playlists").glob("analysis*.csv"))
 
 if not csv_files:
     print("\n[ERROR] No analysis CSV files found.")
@@ -141,7 +141,7 @@ source_csv_pattern = df_all['source_file'].iloc[0] if 'source_file' in df_all.co
 # Extract original filename (e.g., 'analysis_A_IMPORT_tracks_1-979' -> 'A_IMPORT')
 if source_csv_pattern.startswith('analysis_'):
     original_name = source_csv_pattern.replace('analysis_', '').split('_tracks_')[0]
-    original_csv_path = Path(original_name + '.csv')
+    original_csv_path = Path('playlists_to_analyse') / (original_name + '.csv')
     
     if original_csv_path.exists():
         print(f"Loading file paths from: {original_csv_path.name}")
@@ -750,7 +750,7 @@ function exportToEngineCSV() {
 
 # Combine plot and table into single HTML
 print("Combining plot and table into HTML...")
-output_html = Path("clustering_analysis.html")
+output_html = Path("analysis_output/clustering_analysis.html")
 
 # Write plot to temporary string
 plot_html = pio.to_html(fig, include_plotlyjs='cdn', full_html=False)

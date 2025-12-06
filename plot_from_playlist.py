@@ -27,7 +27,7 @@ print("DJ PLAYLIST VISUALIZATION")
 print("=" * 70)
 
 # Find analysis CSV files (from playlist)
-csv_files = list(Path(".").glob("analysis_*.csv"))
+csv_files = list(Path("analysed_playlists").glob("analysis_*.csv"))
 
 if not csv_files:
     print("\n[ERROR] No analysis CSV files found.")
@@ -221,7 +221,7 @@ ax10.grid(axis='x', alpha=0.3, linestyle='--')
 # No need for tight_layout with GridSpec - already handled
 
 # Save figure
-output_path = csv_path.parent / f"{csv_path.stem}_plot.png"
+output_path = Path("analysis_output") / f"{csv_path.stem}_plot.png"
 plt.savefig(output_path, dpi=300, bbox_inches='tight')
 print(f"✓ Visualization saved to: {output_path}")
 

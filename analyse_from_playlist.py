@@ -160,10 +160,10 @@ def main():
     
     # 1. Select CSV file
     print("\nAvailable CSV files:")
-    csv_files = list(Path(".").glob("*.csv"))
+    csv_files = list(Path("playlists_to_analyse").glob("*.csv"))
     
     if not csv_files:
-        print("[ERROR] No CSV files found in current directory.")
+        print("[ERROR] No CSV files found in playlists_to_analyse directory.")
         return
     
     for idx, csv_file in enumerate(csv_files, 1):
@@ -236,7 +236,7 @@ def main():
     # 6. Save results
     if results:
         output_name = f"analysis_{selected_csv.stem}_tracks_{start}-{end}.csv"
-        output_path = Path(output_name)
+        output_path = Path("analysed_playlists") / output_name
         
         with open(output_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=results[0].keys())
