@@ -282,6 +282,7 @@ if len(df_major) > 0:
                 symbol='circle'
             ),
             text=df_major['camelot'],
+            customdata=df_major['label'],
             hovertext=df_major.apply(
                 lambda row: f"<b>{row['label']}</b><br>"
                            f"Key: {row['camelot']} ({row['key']} {row['mode']})<br>"
@@ -311,6 +312,7 @@ if len(df_minor) > 0:
                 symbol='square'
             ),
             text=df_minor['camelot'],
+            customdata=df_minor['label'],
             hovertext=df_minor.apply(
                 lambda row: f"<b>{row['label']}</b><br>"
                            f"Key: {row['camelot']} ({row['key']} {row['mode']})<br>"
@@ -589,6 +591,9 @@ function applyFilters() {
   
   // Update visible count
   updateVisibleCount();
+  
+  // Update t-SNE plot to reflect table filtering
+  updatePlotFromTableFilter();
 }
 
 function updateVisibleCount() {
@@ -606,6 +611,44 @@ function updateVisibleCount() {
   document.getElementById("visibleCount").textContent = visibleCount;
 }
 
+function updatePlotFromTableFilter() {
+  var table = document.getElementById("trackTable");
+  var tbody = table.tBodies[0];
+  var rows = tbody.getElementsByTagName("tr");
+  
+  // Get visible track labels
+  var visibleTracks = [];
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].style.display !== "none") {
+      var trackLabel = rows[i].cells[1].textContent.trim();
+      visibleTracks.push(trackLabel);
+    }
+  }
+  
+  // Update plot: gray out non-visible tracks
+  var plotDiv = document.querySelector('.plotly-graph-div');
+  var data = plotDiv.data;
+  
+  if (visibleTracks.length === rows.length) {
+    // All tracks visible - reset to full opacity
+    Plotly.restyle(plotDiv, {'marker.opacity': 0.8}, [0, 1]);
+  } else {
+    // Some tracks filtered - update opacity per trace
+    for (var traceIdx = 0; traceIdx < data.length; traceIdx++) {
+      var trace = data[traceIdx];
+      var customdata = trace.customdata;
+      
+      if (!customdata) continue;
+      
+      var opacities = customdata.map(function(label) {
+        return visibleTracks.includes(label) ? 0.8 : 0.15;
+      });
+      
+      Plotly.restyle(plotDiv, {'marker.opacity': [opacities]}, [traceIdx]);
+    }
+  }
+}
+
 function exportToM3U() {
   var table = document.getElementById("trackTable");
   var tbody = table.tBodies[0];
@@ -617,7 +660,8 @@ function exportToM3U() {
   
   for (var i = 0; i < rows.length; i++) {
     var row = rows[i];
-    if (row.style.display !== "none") {
+    // Export only if visible (not filtered) AND not grayed out (opacity !== "0.3")
+    if (row.style.display !== "none" && row.style.opacity !== "0.3") {
       var artist = row.getAttribute("data-artist");
       var title = row.getAttribute("data-title");
       var filepath = row.getAttribute("data-filepath");
@@ -658,7 +702,8 @@ function exportToEngineCSV() {
   
   for (var i = 0; i < rows.length; i++) {
     var row = rows[i];
-    if (row.style.display !== "none") {
+    // Export only if visible (not filtered) AND not grayed out (opacity !== "0.3")
+    if (row.style.display !== "none" && row.style.opacity !== "0.3") {
       var artist = row.getAttribute("data-artist");
       var title = row.getAttribute("data-title");
       var album = row.getAttribute("data-album");
