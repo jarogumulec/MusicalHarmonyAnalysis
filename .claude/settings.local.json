@@ -3,7 +3,8 @@
     "allow": [
       "Bash(uv run *)",
       "WebSearch",
-      "WebFetch(domain:developer.spotify.com)"
+      "WebFetch(domain:developer.spotify.com)",
+      "Bash(git *)"
     ]
   }
 }

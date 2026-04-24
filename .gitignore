@@ -2,6 +2,8 @@ music
 *.png
 *.csv
 *.html
+*.xml
+.DS_Store
 __pycache__/
 *.pyc
 apple2spotify/.spotify_auth_cache
@@ -12,7 +14,3 @@ apple2spotify/migration_plan.json
 apple2spotify/spotify_track_cache.json
 apple2spotify/sync_report.json
 apple2spotify/spotify_backups/
-
-apple_music_Knihovna.xml
-apple_music_Oblíbené_manual_4_2026.xml
-apple_music_Rewind.txt
