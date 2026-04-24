@@ -37,25 +37,33 @@ if not csv_files:
 print("\nAvailable analysis files:")
 for idx, csv_file in enumerate(csv_files, 1):
     print(f"  {idx}. {csv_file.name}")
+print(f"  {len(csv_files) + 1}. Merge all files")
 
 while True:
     try:
-        csv_choice = int(input(f"\nSelect file to visualize (1-{len(csv_files)}): "))
-        if 1 <= csv_choice <= len(csv_files):
-            csv_path = csv_files[csv_choice - 1]
+        csv_choice = int(input(f"\nSelect file to visualize (1-{len(csv_files) + 1}): "))
+        if 1 <= csv_choice <= len(csv_files) + 1:
             break
-        print(f"Please enter a number between 1 and {len(csv_files)}")
+        print(f"Please enter a number between 1 and {len(csv_files) + 1}")
     except ValueError:
         print("Invalid input. Please enter a number.")
 
-print(f"\n✓ Selected: {csv_path.name}")
+if csv_choice <= len(csv_files):
+    csv_path = csv_files[csv_choice - 1]
+    print(f"\n✓ Selected: {csv_path.name}")
+    df = pd.read_csv(csv_path)
+else:
+    print(f"\n✓ Merging all {len(csv_files)} files...")
+    dfs = []
+    for f in csv_files:
+        df_temp = pd.read_csv(f)
+        dfs.append(df_temp)
+    df = pd.concat(dfs, ignore_index=True)
+    # Deduplicate by Title+Artist (keep first)
+    df = df.drop_duplicates(subset=['Title', 'Artist'], keep='first')
+    print(f"✓ Merged {len(df)} total tracks")
+
 print(f"{'─' * 70}\n")
-
-# -------------------------------------------------------------------
-# Load and prepare data
-# -------------------------------------------------------------------
-
-df = pd.read_csv(csv_path)
 
 # Sort by track number (playlist order)
 df = df.sort_values('#').reset_index(drop=True)
