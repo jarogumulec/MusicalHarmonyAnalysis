@@ -75,6 +75,22 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Process Apple favorites from newest to oldest by Date Added.",
     )
+    apply_parser.add_argument(
+        "--merge-added-after",
+        type=str,
+        help="Only process Apple tracks added on or after YYYY-MM-DD. Skips older tracks.",
+    )
+    apply_parser.add_argument(
+        "--stop-after-n-existing",
+        type=int,
+        help="Stop processing a playlist after N consecutive tracks already exist in Spotify.",
+    )
+    apply_parser.add_argument(
+        "--search-delay",
+        type=float,
+        default=0.3,
+        help="Seconds to wait between Spotify search requests (default: 0.3). Increase to avoid rate limits.",
+    )
     apply_parser.set_defaults(func=apply_plan_command)
 
     backup_parser = subparsers.add_parser("backup-spotify", help="Export Spotify playlists and liked tracks to JSON files")
@@ -136,6 +152,10 @@ def apply_plan_command(args: argparse.Namespace) -> int:
     if include_favorite_flags is None:
         include_favorite_flags = not args.no_favorite_flags
 
+    merge_added_after = _parse_iso_date(args.merge_added_after) if args.merge_added_after else None
+    stop_after_n_existing = args.stop_after_n_existing
+    search_delay = args.search_delay
+
     report = {
         "plan": str(args.plan),
         "playlist_results": [],
@@ -150,33 +170,17 @@ def apply_plan_command(args: argparse.Namespace) -> int:
             continue
 
         try:
-            tracks = apple_tracks_for_playlist(library, playlist_plan.get("apple_persistent_id"))
-            resolved_ids, unresolved = _resolve_tracks(spotify, cache, tracks)
             target_info = playlist_plan.get("spotify_target") or {}
             playlist_name = target_info.get("name") or playlist_plan["apple_name"]
 
+            # Determine target_id and existing_ids first
+            target_id = None
+            existing_ids = set()
             if approval == "approved_create":
                 existing_target_id = target_info.get("id")
                 if existing_target_id:
                     target_id = existing_target_id
                     existing_ids = spotify.get_playlist_track_ids(target_id)
-                    missing_ids = [track_id for track_id in resolved_ids if track_id not in existing_ids]
-                else:
-                    created = spotify.create_playlist(
-                        name=playlist_name,
-                        public=args.public_playlists,
-                        description="Imported from Apple Music by apple2spotify",
-                    )
-                    target_id = created.playlist_id
-                    playlist_plan["spotify_target"] = {
-                        "id": created.playlist_id,
-                        "name": created.name,
-                        "owner_id": created.owner_id,
-                        "public": created.public,
-                        "snapshot_id": created.snapshot_id,
-                        "track_total": created.track_total,
-                    }
-                    missing_ids = resolved_ids
             else:
                 target_id = target_info.get("id")
                 if not target_id:
@@ -184,19 +188,32 @@ def apply_plan_command(args: argparse.Namespace) -> int:
                         f"Playlist '{playlist_plan['apple_name']}' is approved for update but has no spotify target id."
                     )
                 existing_ids = spotify.get_playlist_track_ids(target_id)
-                missing_ids = [track_id for track_id in resolved_ids if track_id not in existing_ids]
+
+            tracks = apple_tracks_for_playlist(library, playlist_plan.get("apple_persistent_id"))
+            if merge_added_after is not None:
+                tracks = [
+                    track for track in tracks
+                    if track.date_added is not None and track.date_added.date() >= merge_added_after
+                ]
+            resolved_ids, unresolved = _resolve_tracks(
+                spotify, cache, tracks,
+                existing_playlist_ids=existing_ids,
+                stop_after_n_existing=stop_after_n_existing,
+            )
             if missing_ids:
                 spotify.add_tracks_to_playlist(target_id, missing_ids)
 
+            stopped_early = any(r.get("reason", "").startswith("stopped_after_") for r in unresolved)
             report["playlist_results"].append(
                 {
                     "apple_name": playlist_plan["apple_name"],
                     "approval": approval,
-                    "status": "success",
+                    "status": "success" if not stopped_early else "success_stopped_early",
                     "spotify_target_id": target_id,
                     "resolved_track_count": len(resolved_ids),
                     "added_track_count": len(missing_ids),
                     "unresolved_tracks": unresolved,
+                    "stopped_early": stopped_early,
                 }
             )
             if approval == "approved_create" and playlist_plan.get("spotify_target", {}).get("id"):
@@ -220,12 +237,16 @@ def apply_plan_command(args: argparse.Namespace) -> int:
                 favorites_playlist_names=favorites_playlist_names,
                 include_favorite_flags=include_favorite_flags,
             )
+            # Apply both --merge-added-after (global) and --favorites-added-after (favorites-specific)
+            cutoff = merge_added_after
             added_after = _parse_iso_date(args.favorites_added_after) if args.favorites_added_after else None
-            if added_after is not None:
+            if added_after is not None and (cutoff is None or added_after > cutoff):
+                cutoff = added_after
+            if cutoff is not None:
                 tracks = [
                     track
                     for track in tracks
-                    if track.date_added is not None and track.date_added.date() >= added_after
+                    if track.date_added is not None and track.date_added.date() >= cutoff
                 ]
             if args.favorites_newest_first:
                 tracks = sorted(
@@ -237,7 +258,11 @@ def apply_plan_command(args: argparse.Namespace) -> int:
             start = max(args.favorites_offset, 0)
             end = start + args.favorites_limit if args.favorites_limit is not None else total_candidate_count
             tracks = tracks[start:end]
-            resolved_ids, unresolved = _resolve_tracks(spotify, cache, tracks)
+            resolved_ids, unresolved = _resolve_tracks(
+                spotify, cache, tracks,
+                existing_playlist_ids=None,  # For favorites, we check against saved tracks later
+                stop_after_n_existing=None,  # Not applicable for favorites
+            )
             saved_ids = spotify.get_saved_track_ids()
             missing_ids = [track_id for track_id in resolved_ids if track_id not in saved_ids]
             if missing_ids:
@@ -355,19 +380,59 @@ def dedupe_playlist_command(args: argparse.Namespace) -> int:
     return 0
 
 
-def _resolve_tracks(spotify: SpotifySyncClient, cache: dict[str, dict], tracks: list) -> tuple[list[str], list[dict]]:
+def _resolve_tracks(
+    spotify: SpotifySyncClient,
+    cache: dict[str, dict],
+    tracks: list,
+    existing_playlist_ids: set[str] | None = None,
+    stop_after_n_existing: int | None = None,
+) -> tuple[list[str], list[dict]]:
     resolved_ids: list[str] = []
     unresolved: list[dict] = []
+    consecutive_existing = 0
+
     for track in tracks:
         cached = cache.get(track.cache_key)
         if cached:
             if cached.get("spotify_track_id"):
                 resolved_ids.append(cached["spotify_track_id"])
+                # Check if this track already exists in the playlist
+                if existing_playlist_ids and cached["spotify_track_id"] in existing_playlist_ids:
+                    consecutive_existing += 1
+                    if stop_after_n_existing and consecutive_existing >= stop_after_n_existing:
+                        unresolved.append({
+                            "track": track.display_name,
+                            "reason": f"stopped_after_{consecutive_existing}_existing_tracks",
+                        })
+                        break
+                else:
+                    consecutive_existing = 0
             else:
                 unresolved.append({"track": track.display_name, **cached})
+                consecutive_existing = 0
             continue
 
-        match = spotify.search_best_track_match(track)
+        try:
+            match = spotify.search_best_track_match(track)
+        except Exception as search_err:
+            error_msg = str(search_err)
+            payload = {
+                "spotify_track_id": None,
+                "spotify_name": None,
+                "spotify_artist": None,
+                "spotify_album": None,
+                "confidence": 0.0,
+                "reason": "search_error",
+                "raw_query": None,
+                "error": error_msg,
+            }
+            cache[track.cache_key] = payload
+            unresolved.append({"track": track.display_name, **payload})
+            consecutive_existing = 0
+            continue
+
+        time.sleep(search_delay)
+
         payload = {
             "spotify_track_id": match.spotify_track_id,
             "spotify_name": match.spotify_name,
@@ -380,8 +445,20 @@ def _resolve_tracks(spotify: SpotifySyncClient, cache: dict[str, dict], tracks: 
         cache[track.cache_key] = payload
         if match.spotify_track_id:
             resolved_ids.append(match.spotify_track_id)
+            # Check if this track already exists in the playlist
+            if existing_playlist_ids and match.spotify_track_id in existing_playlist_ids:
+                consecutive_existing += 1
+                if stop_after_n_existing and consecutive_existing >= stop_after_n_existing:
+                    unresolved.append({
+                        "track": track.display_name,
+                        "reason": f"stopped_after_{consecutive_existing}_existing_tracks",
+                    })
+                    break
+            else:
+                consecutive_existing = 0
         else:
             unresolved.append({"track": track.display_name, **payload})
+            consecutive_existing = 0
 
     deduped_ids = list(dict.fromkeys(resolved_ids))
     return deduped_ids, unresolved

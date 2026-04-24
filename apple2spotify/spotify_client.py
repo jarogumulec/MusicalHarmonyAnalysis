@@ -140,7 +140,9 @@ class SpotifySyncClient:
         items = ((candidates.get("tracks") or {}).get("items")) or []
         if not items:
             fallback_query = f"{apple_track.name} {apple_track.artist or apple_track.album_artist or ''}".strip()
-            candidates = self._spotify_search(fallback_query)
+        import time
+        time.sleep(0.3)
+        candidates = self._spotify_search(fallback_query)
             items = ((candidates.get("tracks") or {}).get("items")) or []
             query = fallback_query
 
@@ -186,14 +188,24 @@ class SpotifySyncClient:
         )
 
     def _spotify_search(self, query: str) -> dict:
-        try:
-            return self.client.search(q=query, type="track", limit=10)
-        except SpotifyException as exc:
-            if exc.http_status == 429:
-                raise RuntimeError(
-                    f"Spotify search rate-limited. Retry later. Details: {exc.msg}"
-                ) from exc
-            raise RuntimeError(f"Spotify search failed: {exc.msg}") from exc
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                return self.client.search(q=query, type="track", limit=10)
+            except SpotifyException as exc:
+                if exc.http_status == 429:
+                    retry_after = int(exc.headers.get("Retry-After", 60))
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_after)
+                        continue
+                    raise RuntimeError(
+                        f"Spotify search rate-limited for {retry_after}s. Wait and try again later."
+                    ) from exc
+                if exc.http_status == 400:
+                    return {"tracks": {"items": []}}
+                raise RuntimeError(f"Spotify search failed: {exc.msg}") from exc
+        return {"tracks": {"items": []}}
 
     def _api_request(
         self,

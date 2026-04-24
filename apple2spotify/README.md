@@ -65,7 +65,11 @@ From the repository root:
 4. Apply approved actions
    - `uv run python -m apple2spotify apply-plan`
    - favorites in batches from newest Apple additions after a cutoff date:
-     - `uv run python -m apple2spotify apply-plan --only-favorites --favorites-added-after 2025-04-01 --favorites-newest-first --favorites-limit 100`
+     - `uv run python -m apple2spotify apply-plan --only-favorites --favorites-added-after 2025-04-01 --favorites-Newest-first --favorites-limit 100`
+   - merge only tracks added after a cutoff (useful to skip pre-migration tracks):
+     - `uv run python -m apple2spotify apply-plan --merge-added-after 2025-04-01`
+   - stop processing a playlist early after N consecutive tracks already exist:
+     - `uv run python -m apple2spotify apply-plan --stop-after-n-existing 10`
 
 5. Create a Spotify backup
    - `uv run python -m apple2spotify backup-spotify`
